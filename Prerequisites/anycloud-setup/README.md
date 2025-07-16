@@ -1,18 +1,12 @@
 # AnyCloud Module Setup for Omeka-S
 
-## Step 1: Install the Module
-- Download the ZIP from https://omeka.org/s/modules/
-- Unzip and place in `/modules` directory of Omeka-S
+## Installation
+- Install the plugin by [downloading and unzipping the latest module](https://github.com/HBLL-Collection-Development/omeka-s-any-cloud/releases) and loading it into the modules directory of your [Omeka S](https://omeka.org/s/) instance.
+- Enable the plugin from the Admin side of your installation under “Modules”.
+- Configure the module from the Admin side to include credentials for the cloud storage system you would like to use. You can also choose to configure the module from the config/local.config.php file (see [server-side configuration](https://github.com/HBLL-Collection-Development/omeka-s-any-cloud?tab=readme-ov-file#server-side-configuration))
 
-## Step 2: Enable
-- Go to Admin dashboard > Modules > Install AnyCloud
 
-## Step 3: Configure
-- Click **Configure** and enter:
-  - AWS Access Key
-  - AWS Secret Key
-  - Bucket name
-- Or update `config/local.config.php` for server-side setup
+After that, when you upload media for an item, it will upload to your selected cloud service rather than to your server’s local storage.
 
-## Usage
-Once configured, new media uploads will be stored in your selected cloud bucket (e.g., S3).
+
+

@@ -1,13 +1,8 @@
 # CSV Import Module Setup
 
-## Step 1: Install
-- Download from https://omeka.org/s/modules/
-- Unzip and place in `/modules` directory
+## Installation
+- See general end user documentation for [Installing a module](http://omeka.org/s/docs/user-manual/modules/#installing-modules).
 
-## Step 2: Enable
-- Go to Admin > Modules > Install CSV Import
+To install CSV Import from the source, go to the root of the module, and run composer install. Users using the pre-packaged downloads from the Releases page or the omeka.org module directory don't need to worry about this step.
 
-## Optional: Composer Step
-If installed from GitHub source:
-```bash
-composer install
+To be able to import ods, the php extensions zip and xml should be installed (default in most cases).
