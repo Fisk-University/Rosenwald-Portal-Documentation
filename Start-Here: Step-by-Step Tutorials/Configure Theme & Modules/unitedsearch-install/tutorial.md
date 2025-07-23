@@ -3,7 +3,7 @@
 ## This tutorial will walk you through the steps to install and activate **UnitedSearch** module for Omeka S.
 
 ## Requirements
-> ** Note:** UnitedSearch requires **Omeka S version 4.0.0 OR higher** to work properly.
+> ** Note:** UnitedSearch requires **Omeka S version 4.0.0 or higher** to work properly.
 
 ---
 
