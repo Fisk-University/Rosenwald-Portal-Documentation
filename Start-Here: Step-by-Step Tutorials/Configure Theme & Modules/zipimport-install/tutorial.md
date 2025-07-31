@@ -63,4 +63,4 @@ post_max_size = 1000M
 If the module has configuration options, you will be taken to its setup page otherwise, it will install and activate immediately with a success message.
 
 
-![module install](/Users/Kosi/Documents/Screenshot 2025-07-31 at 12.57.04 AM.png)
+![module install](/Users/Kosi/Documents/GitHub/Archivist-Documentation/Screenshot 2025-07-31 at 12.57.04 AM.png)
