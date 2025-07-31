@@ -36,7 +36,7 @@ This tutorial walks you through how to install and activate the **ZipImport** mo
 - Add the zip to the Omeka-S modules folder and unzip it.
 - Rename the unzipped folder to "ZipImport" if it's not already named as such.
 - Open a terminal, navigate to the "ZipImport" folder, and run `composer install`.
-** Sudo or appropriate permissions may be necessary **
+- **Sudo or appropriate permissions may be necessary**
 
 ## Update php.ini
 - Find your php.ini file with the `php -r "phpinfo();" | grep php.ini` command, or with an info.php page using `<?php phpinfo(); ?>`
@@ -62,3 +62,5 @@ post_max_size = 1000M
 
 If the module has configuration options, you will be taken to its setup page otherwise, it will install and activate immediately with a success message.
 
+
+![module install](/Users/Kosi/Documents/Screenshot 2025-07-31 at 12.57.04 AM.png)
