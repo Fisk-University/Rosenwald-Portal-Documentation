@@ -76,4 +76,4 @@ Confirm that the PHP settings reflect your changes.
 
 If the module has configuration options, you will be taken to its setup page otherwise, it will install and activate immediately with a success message.
 
-![ZipImport Install](/Users/Kosi/Documents/Screenshot 2025-07-31 at 12.57.04 AM.png)
+![ZipImport Install](/Users/Kosi/Downloads/Screenshot 2025-07-31 at 12.57.04 AM.pdf) 
