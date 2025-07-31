@@ -30,9 +30,9 @@ This tutorial walks you through how to install and activate the **ZipImport** mo
 
 ### Option 2: Using SSH connection
 
-You can also use SSH to clone a module directly from that module's git repository. Do this only if you are comfortable with git, GitHub, and working with SSH.
+#### You can also use SSH to clone a module directly from that module's git repository. Do this only if you are comfortable with git, GitHub, and working with SSH.
 
-Install Composer Dependencies
+## Install Composer Dependencies
 Open a terminal and navigate into the unzipped ZipImport folder:
 
 bash
@@ -41,31 +41,20 @@ cd /path/to/omeka-s/modules/ZipImport
 composer install
 ⚠️ You may need to use sudo depending on your permissions.
 
-⚙️ Update PHP Settings
-Locate your php.ini file by running:
-
-bash
-Copy code
-php -r "phpinfo();" | grep php.ini
-Open the file and update the following settings:
-
-ini
-Copy code
+## Update PHP Settings
+- Find your php.ini file with the php -r "phpinfo();" | grep php.ini command, or with an info.php page using <?php phpinfo(); ?>
+- Adjust the following fields:
+```
 upload_max_filesize = 1000M
 max_file_uploads = 100
 post_max_size = 1000M
-Save and restart your server:
+```
+- Restart your server with service apache2 restart or the relevant command.
+- Restart php with systemctl restart php or the relevant command.
 
-bash
-Copy code
-sudo service apache2 restart  # For Apache
-sudo systemctl restart php8.1-fpm  # Replace with your PHP version
-✅ Verify PHP Limits in Omeka S
-Log into the Omeka S Admin Dashboard.
 
-Scroll to the bottom-right corner and click System Information.
-
-Confirm that the PHP settings reflect your changes.
+## Verify PHP Limits in Omeka S
+- In the Omeka-S Dashboard, click "System Information" in the lower right to ensure PHP limits are updated.
 
 # Installing the Module in Omeka S
 - Log into the Omeka S Admin Dashboard.
@@ -76,4 +65,3 @@ Confirm that the PHP settings reflect your changes.
 
 If the module has configuration options, you will be taken to its setup page otherwise, it will install and activate immediately with a success message.
 
-![ZipImport Install](/Users/Kosi/Downloads/Screenshot 2025-07-31 at 12.57.04 AM.pdf) 
