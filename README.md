@@ -1,142 +1,187 @@
-# 📃 Rosenwald Project: Archivist Documentation
+# Rosenwald Project: Documentation
 
-This repository helps **archivists, librarians, and digital humanities professionals** at HBCUs and similar institutions replicate the digital archive built at Fisk University for the **Julius Rosenwald Fund** collection. It contains clear, non-technical guidance on how to set up, configure, and launch your own Omeka S-based site with minimal overhead and long-term sustainability.
+This repository contains **technical documentation and implementation resources** for replicating the Julius Rosenwald Fund Digital Portal developed at Fisk University.
 
-> ✨ This is the public-friendly version of our internal developer documentation. If you're a developer, please request access to the private repo for system architecture and credentials.
+It is designed for **engineers, developers, and technical consultants** supporting archivists, librarians, and digital-humanities teams at **HBCUs or similar institutions** with the funding and infrastructure to deploy complex digital collections.
 
----
+These materials include AWS infrastructure guidance, OmekaS installation and configuration procedures, CI/CD workflows, and custom module and theme documentation used in the Fisk University Rosenwald Portal implementation.
+
+This repository serves as the full technical blueprint—every step required to reproduce the Rosenwald digital portal architecture, from infrastructure provisioning to Omeka S module development.
 
 ## 📆 About the Rosenwald Project
 
-The Rosenwald Project is a Mellon Foundation-funded initiative that digitizes the history of **Julius Rosenwald**, a philanthropist who helped fund thousands of schools for African Americans in the early 20th century. 
+The Rosenwald Project is a Mellon Foundation-funded initiative that digitizes the history of **Julius Rosenwald**, a philanthropist who helped fund thousands of schools for African Americans in the early 20th century.
 
-Fisk University launched this digital archive to preserve and share Rosenwald-related documents with the world. Just as importantly, we documented every step to help **other HBCUs and cultural memory institutions** replicate this effort with low cost and little technical burden.
+Fisk University’s digital portal not only houses these materials but also provides **a model for replication** - a complete, open framework that other HBCUs can use to digitize, describe, and share their own collections securely and sustainably.
 
-This guide is part of our mission to make digital preservation more accessible and sustainable across the archival community.
+This documentation represents the **technical backbone of that blueprint**, ensuring that future institutions can extend, customize, and deploy the system with confidence.
 
----
+## 📚 Documentation Table of Contents
 
-## 📁 Why We Chose Omeka S
+### 00-templates/
+*Foundation templates and guidelines for all documentation*
 
-[Omeka S](https://omeka.org/s/) is a free and open-source content management system built for digital collections. It's widely used by universities, archives, and museums.
+| Document | Description |
+|----------|-------------|
+| `sop-template.md` | Standard Operating Procedure template for all repeatable tasks |
+| `style-guide.md` | Documentation style guide for consistency across all materials |
 
-We chose it because:
-- It's **designed for metadata-rich archives**
-- Supports **modular themes and plugins**
-- Has a large user community and solid documentation
-- Requires **no licensing fees**
+### 01-infrastructure/
+*AWS infrastructure setup and LAMP stack configuration*
 
-With the right modules and infrastructure, Omeka S offers enterprise power with a low learning curve.
+| Document | Description |
+|----------|-------------|
+| `aws-setup.md` | EC2, S3, RDS, IAM, Route 53, SSL configuration guide |
+| `lamp-stack.md` | LAMP installation and hardening SOP |
+| `dns-nameservers-route53.md` | Connecting .edu domains to AWS Route 53 via nameservers |
+| `php-performance-and-upload-limits.md` | Increasing PHP upload/memory limits securely |
+| `imagemagick-pdf-thumbnails.md` | Secure ImageMagick policy.xml configuration for PDF thumbnails |
 
----
+### 02-omeka-installation/
+*Omeka S installation and core configuration procedures*
 
-## 🚀 What Our Site Uses
+| Document | Description |
+|----------|-------------|
+| `omeka-install.md` | Omeka S installation and configuration |
+| `database-ini.md` | Database connection setup and environment variables |
 
-### 🎨 Theme
-**Rosenwald-Fund-Collection** (custom)
-- Matches Fisk University branding
-- Prioritizes clarity and accessibility
-- Displays collection images, metadata, and search controls in a clean layout
-- GitHub: [Rosenwald-Fund-Collection Theme](https://github.com/Fisk-University/Rosenwald-Fund-Collection)
+### 03-modules/
+*Configuration and usage guides for essential Omeka S modules*
 
-### ⚖️ Modules Used
+| Document | Description |
+|----------|-------------|
+| `zipimport.md` | ZIP importer usage, metadata schema, and nested file example |
+| `unitedsearch.md` | Unified search configuration and customization |
+| `dualpropertysearch.md` | Dual-property search module usage and caching strategy |
 
-#### Custom Modules:
-- **ZipImport** – Bulk-import images and metadata from a zip file and CSV. ([GitHub](https://github.com/Fisk-University/ZipImport))
-- **UnitedSearch** – Lets users filter collections by dual properties (like State and County). ([GitHub](https://github.com/Fisk-University/UnitedSearch))
+### 04-theme/
+*Theme customization and optional enhancements*
+
+| Document | Description | Status |
+|----------|-------------|--------|
+| `rosenwald-theme.md` | Theme customization, SCSS structure, and responsive design rules | Required |
+| `custom-vocabulary.md` | Define a unique controlled vocabulary in Omeka-S | Optional |
+| `lat-long-calculator.md` | Excel Macro to print lat/long coordinates of counties provided | Optional |
+
+### 05-cicd/
+*Continuous Integration/Deployment and operational procedures*
+
+| Document | Description |
+|----------|-------------|
+| `environments.md` | Multi-environment (dev/test/stage/prod) overview |
+| `backup-restore.md` | Automated S3 backups and restore procedures |
+| `deployment-checklist.md` | Pre-launch deployment and verification checklist |
+
+### 06-troubleshooting/
+*Common issues and their resolutions*
+
+| Document | Description |
+|----------|-------------|
+| `common-errors.md` | Frequent Apache, PHP, and Omeka S issues |
+| `zipimporter-errors.md` | How to read and troubleshoot ZipImporter logs |
+
+### 07-replication-blueprint/
+*Guidelines for replicating this infrastructure at other institutions*
+
+| Document | Description |
+|----------|-------------|
+| `overview.md` | Replication overview for other HBCUs |
+| `cost-model.md` | Estimated infrastructure costs and funding tiers |
+| `security-practices.md` | Security baseline and IAM best practices |
 
 
-#### Third-Party Modules:
-- **AnyCloud** – Store media files in cloud storage (e.g., Amazon S3)
-- **CSV Import** – Import content from spreadsheets (used alongside ZipImport)
-- **Common**, **Easy Admin**, **Log**, **Mapping** – Backend helpers and admin utilities
-- **CSSEditor** – Add site-specific CSS overrides
-- **Item Carousel Block** – Add image carousels to pages
+## 🤝 Contribution Guidelines
 
-All modules are free and available through Omeka's official plugin directories or GitHub.
+### Before Contributing
+1. Read the [Style Guide](00-templates/style-guide.md) for documentation standards
+2. Use the [SOP Template](00-templates/sop-template.md) when creating new procedures
+3. Ensure all commands and procedures have been tested in a development environment
 
----
+### Contribution Process
 
-## 📅 Installation Steps
+1. **Branch Creation**: Create a feature branch from `main`
+```bash
+   git checkout -b docs/your-feature-name
+```
 
-### 1. Install Omeka S
-Follow Omeka's installation guide: https://omeka.org/s/docs/user-manual/install/.
-- This repo also includes `Installing-Omeka-S-on-AWS.md` for additional installation support on AWS.
+2. **Documentation Standards**:
+   - Follow the established style guide
+   - Include all required SOP sections when applicable
+   - Test all commands and procedures
+   - Add screenshots where helpful
 
-You will need:
-- PHP 8.1+
-- MySQL 5.7+
-- Apache or Nginx
+3. **Commit Messages**: Use conventional commit format
+   - docs: Add AWS RDS configuration guide
+   - fix: Correct PHP memory limit in LAMP setup
+   - update: Revise SSL certificate renewal procedure
 
-You can install Omeka S on:
-- Your local machine (for testing)
-- An EC2 instance on AWS or other cloud computing service like Azure (for production/live website)
-- A university-managed server (for production/live website)
+4. **Pull Request**:
+   - Title: Clear description of changes
+   - Description: List all modifications and their purpose
+   - Reviewers: Tag appropriate team members
 
-### 2. Upload the Theme
-1. Download the Rosenwald-Fund-Collection theme from GitHub
-2. Place it in your `themes/` folder
-3. Enable it in your Omeka admin under **Appearance** > **Theme**
+### Review Criteria
+- [ ] Follows style guide formatting
+- [ ] Technical accuracy verified
+- [ ] Commands tested and working
+- [ ] Links are valid
+- [ ] No sensitive information exposed
+- [ ] Proper file naming conventions
 
-### 3. Install and Enable Modules
-1. Download modules (ZIP format) from GitHub or Omeka Plugin Directory
-2. Place each module folder into the `/modules/` directory
-3. Go to **Modules** in the Omeka admin dashboard and click **Install**
 
-Recommended order:
-- Install `Common` first (dependency)
-- Then `CSV Import`, `AnyCloud`, and `ZipImport`, etc.
+## 🚀 Quick Start
 
-### 4. Configure Your Site
-- Create a new site under **Sites** tab
-- Add your item sets (collections)
-- Use the **Site Pages** builder to add pages like "About," "Collections," or "Map"
-- Use **Block Layouts** to insert search boxes, carousels, and dropdown filters
-- Utilize **ZipImport** to batch import hundreds of digital assets related metadata ([Details](https://github.com/Fisk-University/ZipImport))
+### For New Team Members
+| Step | Action | Document |
+|------|--------|----------|
+| 1 | Understand infrastructure | `01-infrastructure/aws-setup.md` |
+| 2 | Review application setup | `02-omeka-installation/omeka-install.md` |
+| 3 | Reference for issues | `06-troubleshooting/common-errors.md` |
 
-### 5. Metadata Suggestions
-We use:
-- A custom vocabulary for any unique and highly requested metadata (`GlobalVocabulary.ttl` included in this repo for reference) 
-- Custom vocabulary `State` and `County` properties (for our custom `Dual Property Search` page block)
-- A custom Excel macro and geoloaction data from the US govt to assign lat/long to counties.
+### For HBCU Partners Looking to Replicate
+| Step | Action | Document |
+|------|--------|----------|
+| 1 | Start here | `07-replication-blueprint/overview.md` |
+| 2 | Budget planning | `07-replication-blueprint/cost-model.md` |
+| 3 | Follow SOPs in sequence | Start with infrastructure setup |
 
----
+### For Daily Operations
+| Task | Document |
+|------|----------|
+| Backup procedures | `05-cicd/backup-restore.md` |
+| Pre-deployment checks | `05-cicd/deployment-checklist.md` |
+| Issue resolution | `06-troubleshooting/` folder |
 
-## 🚧 Reducing Technical and Cost Overhead
+## 📋 Documentation Status
 
-We avoided vendor lock-in and kept costs low using:
+| Category | Status | Items |
+|----------|--------|-------|
+| **Completed** | ✅ | SOP Template, Style Guide, Repository Structure |
+| **In Progress** | 🔄 | Infrastructure SOPs, Omeka Installation Guides, Module Configuration |
+| **Planned** | 📅 | Complete Troubleshooting Guides, Replication Blueprint Details, Video Walkthroughs |
 
-- **Amazon Web Services (AWS)** infrastructure (In our case, was more cost effective than Azure):
-  - EC2: open-source hosting
-  - RDS: managed MySQL database
-  - S3: cloud media storage
-  - IAM: secure access roles
-  - Route 53: subdomain management
-- **Omeka S**: free and modular, no proprietary CMS required
-- **Open-source plugins**: no license fees
 
-For universities with limited IT support, AWS provides scalable hosting that can be documented and replicated with minimal hands-on maintenance.
+## 🔗 Related Resources
 
----
+| Resource | Link |
+|----------|------|
+| Omeka S Documentation | [Official Omeka S Docs](https://omeka.org/s/docs/) |
+| AWS Documentation | [AWS Documentation](https://docs.aws.amazon.com/) |
 
-## 🫱🏾 Support & Next Steps
 
-Need help setting up?
-- Use the [Omeka S forums](https://forum.omeka.org/)
-- Reach out to the Rosenwald Project team at Fisk University
+## 📞 Support
 
-Want to contribute?
-- Fork this repository and submit improvements via pull request
-- Submit issues if you notice outdated or unclear documentation
+| Issue Type | Contact Method |
+|------------|----------------|
+| Technical Issues | Create an issue in this repository |
+| General Inquiries | Contact the project maintainer |
+| Security Concerns | Email security team directly (do not post publicly) |
 
-This documentation is maintained with replication in mind. If your institution builds on this guide, let us know! We hope this toolkit empowers more archives to preserve history in the digital age.
 
----
-
-## License
+## 📄 License
 
 This documentation is published under the [Server Side Public License (SSPL-1.0)](https://www.mongodb.com/legal/licensing/server-side-public-license).
 
----
 
-Built with ❤️ by LaTaevia Berry for Fisk University and HBCUs nationwide
+*Last Updated: 2024-10-13*
+*Authors: LaTaevia Berry, & Sai Kiran Boppana*
