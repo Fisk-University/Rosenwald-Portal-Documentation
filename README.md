@@ -1,14 +1,20 @@
-# 📃 Rosenwald Project: Documentation
+# Rosenwald Project: Documentation
 
-This repository helps **archivists, librarians, and digital humanities professionals** at HBCUs and similar institutions replicate the digital archive built at Fisk University for the **Julius Rosenwald Fund** collection. It contains clear, non-technical guidance on how to set up, configure, and launch your own Omeka S-based site with minimal overhead and long-term sustainability.
+This repository contains **technical documentation and implementation resources** for replicating the Julius Rosenwald Fund Digital Portal developed at Fisk University.
+
+It is designed for **engineers, developers, and technical consultants** supporting archivists, librarians, and digital-humanities teams at **HBCUs or similar institutions** with the funding and infrastructure to deploy complex digital collections.
+
+These materials include AWS infrastructure guidance, OmekaS installation and configuration procedures, CI/CD workflows, and custom module and theme documentation used in the Fisk University Rosenwald Portal implementation.
+
+This repository serves as the full technical blueprint—every step required to reproduce the Rosenwald digital portal architecture, from infrastructure provisioning to Omeka S module development.
 
 ## 📆 About the Rosenwald Project
 
 The Rosenwald Project is a Mellon Foundation-funded initiative that digitizes the history of **Julius Rosenwald**, a philanthropist who helped fund thousands of schools for African Americans in the early 20th century.
 
-Fisk University launched this digital archive to preserve and share Rosenwald-related documents with the world. Just as importantly, we documented every step to help **other HBCUs and cultural memory institutions** replicate this effort with low cost and little technical burden.
+Fisk University’s digital portal not only houses these materials but also provides **a model for replication** - a complete, open framework that other HBCUs can use to digitize, describe, and share their own collections securely and sustainably.
 
-This guide is part of our mission to make digital preservation more accessible and sustainable across the archival community.
+This documentation represents the **technical backbone of that blueprint**, ensuring that future institutions can extend, customize, and deploy the system with confidence.
 
 ## 📚 Documentation Table of Contents
 
