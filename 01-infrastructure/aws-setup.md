@@ -833,8 +833,344 @@ If you've successfully connected to your RDS instance from your EC2 instance, yo
 - Security groups are properly configured
 - Database credentials are working
 - Your application layer can now be deployed
+---
+## 3. Object Storage (S3) Architecture
+
+### Conceptual Overview
+
+Object storage provides a scalable, durable, and cost-effective solution for storing unstructured data such as images, videos, documents, and backups. Unlike traditional file systems, object storage uses a flat structure with unique identifiers, making it ideal for web applications that need to store and serve large amounts of media content.
+
+In this architecture, we separate storage into two distinct buckets: one for private development/testing environments and another for public-facing staging/production environments. This separation ensures that experimental or test data never accidentally appears in production, while still maintaining a cost-effective storage strategy.
+
+**Key Principles:**
+- Unlimited scalability without capacity planning
+- Built-in redundancy across multiple facilities
+- Fine-grained access control through policies
+- Direct web serving capability for public content
+- Lifecycle management for cost optimization
+
+### AWS Implementation: S3 Bucket Configuration
+
+#### Step 1: Create S3 Buckets
+
+From the AWS Console, search for **S3**, select **S3 – Scalable Storage in the Cloud**, and choose **Create bucket** in the S3 dashboard.
+
+![Navigate to S3 to Create bucket](./images/s3-24-console-search.png)
+
+#### Step 2: Development/Test Bucket Creation
+
+##### 2.1 General Configuration
+
+| Setting | Value |
+|---------|-------|
+| **Bucket name** | `[your-institution]-omeka-dev-test` |
+| **AWS Region** | Select your primary region (same as EC2) |
+
+> **📝 Naming Requirements:**
+> - Bucket names must be globally unique across all AWS
+> - Use lowercase letters, numbers, and hyphens only
+> - Example: `stateu-omeka-dev-test` or `stateu-omeka-prod-stage`
+
+![S3 bucket creation page with name and region](./images/s3-25-bucket-creation.png)
+
+##### 2.2 Configuration Settings
+
+**Object Ownership:**
+- ACLs disabled (recommended)
+- Bucket owner enforced
+
+**Block Public Access Settings:**
+- Block all public access: **Yes** (check all boxes)
+- This is a private bucket for development/testing
+
+> **⚠️ Security Note:** In the Rosenwald project we've made our buckets public, but we strictly recommend keeping them private unless your project specifically requires public access. Use bucket policies for controlled public access instead.
+
+![S3 Object Ownership and Public Access](./images/s3-26-object-ownership.png)
+
+**Bucket Versioning:**
+
+| Environment | Versioning Setting | Reason |
+|------------|-------------------|---------|
+| **Dev/Test** | Disable | Save costs in development |
+| **Stage/Prod** | Enable | Critical for data protection |
+
+**Default Encryption:**
+- Encryption type: Server-side encryption with Amazon S3 managed keys (SSE-S3)
+- Bucket Key: **Enable** (reduces encryption costs)
+
+**Tags:**
+| Key | Value |
+|-----|-------|
+| Environment | Dev-Test or Prod-Stage |
+| Project | Omeka |
+| Purpose | Media-Storage |
+
+![S3 Bucket Versioning, Public Access and Tags](./images/s3-27-bucket-version.png)
+
+#### Step 3: Configure Bucket Folder Structure
+
+After bucket creation, create a logical folder structure based on project requirements. Use the **Create folder** button in the S3 console.
+
+**Recommended Structure:**
+```
+bucket-name/
+├── dev/
+│   ├── images/
+│   ├── thumbnails/
+│   ├── documents/
+│   └── backups/
+├── test/
+│   ├── images/
+│   ├── thumbnails/
+│   └── documents/
+└── temp/
+```
+
+![Logical folder structure of S3 Bucket](./images/s3-28-logical-folder.png)
+
+#### Step 4: Configure Bucket Policies
+
+##### 4.1 Development/Test Bucket Policy
+
+Navigate to **Bucket → Permissions → Bucket policy → Edit**
+
+This policy allows only EC2 instances with specific IAM roles to access the bucket:
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowEC2DevTestAccess",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": [
+                    "arn:aws:iam::YOUR_ACCOUNT_ID:role/omeka-ec2-dev-role",
+                    "arn:aws:iam::YOUR_ACCOUNT_ID:role/omeka-ec2-test-role"
+                ]
+            },
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject",
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::your-institution-omeka-dev-test/*",
+                "arn:aws:s3:::your-institution-omeka-dev-test"
+            ]
+        },
+        {
+            "Sid": "DenyUnencryptedObjectUploads",
+            "Effect": "Deny",
+            "Principal": "*",
+            "Action": "s3:PutObject",
+            "Resource": "arn:aws:s3:::your-institution-omeka-dev-test/*",
+            "Condition": {
+                "StringNotEquals": {
+                    "s3:x-amz-server-side-encryption": "AES256"
+                }
+            }
+        }
+    ]
+}
+```
+
+##### 4.2 Production/Staging Bucket Policy
+
+This policy allows public read for specific folders while maintaining write restrictions:
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": [
+                "arn:aws:s3:::your-institution-omeka-prod-stage/prod/images/*",
+                "arn:aws:s3:::your-institution-omeka-prod-stage/prod/thumbnails/*",
+                "arn:aws:s3:::your-institution-omeka-prod-stage/stage/images/*",
+                "arn:aws:s3:::your-institution-omeka-prod-stage/stage/thumbnails/*"
+            ]
+        },
+        {
+            "Sid": "AllowEC2ProdStageAccess",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": [
+                    "arn:aws:iam::YOUR_ACCOUNT_ID:role/omeka-ec2-prod-role",
+                    "arn:aws:iam::YOUR_ACCOUNT_ID:role/omeka-ec2-stage-role"
+                ]
+            },
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject",
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::your-institution-omeka-prod-stage/*",
+                "arn:aws:s3:::your-institution-omeka-prod-stage"
+            ]
+        }
+    ]
+}
+```
+
+#### Step 5: Configure CORS Policy
+
+For web application access, configure Cross-Origin Resource Sharing (CORS).
+
+Navigate to **Bucket → Permissions → Cross-origin resource sharing (CORS) → Edit**
+```json
+[
+    {
+        "AllowedHeaders": [
+            "Authorization",
+            "Content-Type",
+            "x-amz-date",
+            "x-amz-security-token"
+        ],
+        "AllowedMethods": [
+            "GET",
+            "PUT",
+            "POST",
+            "DELETE"
+        ],
+        "AllowedOrigins": [
+            "https://yourdomain.edu",
+            "https://stage.yourdomain.edu",
+            "http://localhost:8080"
+        ],
+        "ExposeHeaders": [
+            "ETag",
+            "x-amz-server-side-encryption"
+        ],
+        "MaxAgeSeconds": 3000
+    }
+]
+```
+
+#### Step 6: Configure Lifecycle Rules
+
+Optimize storage costs by automatically transitioning or deleting old files.
+
+Navigate to **Bucket → Management → Lifecycle rules → Create lifecycle rule**
+
+**Lifecycle Rule Configuration:**
+
+| Setting | Value |
+|---------|-------|
+| **Rule name** | `cleanup-old-files` |
+| **Rule scope** | Apply to all objects in bucket |
+
+**Lifecycle Actions:**
+
+| Action | Timeline | Purpose |
+|--------|----------|---------|
+| Transition to Standard-IA | After 30 days | Reduce storage costs for infrequently accessed files |
+| Transition to Glacier Instant | After 90 days | Further cost reduction for archival |
+| Delete objects | After 180 days (Dev/Test only) | Remove old development files |
+| Delete incomplete uploads | After 7 days | Clean up failed uploads |
+
+![Bucket Life Cycle Policy](./images/s3-29-bucket-liofecycle.png)
+
+#### Step 7: Configure Bucket Metrics and Monitoring
+
+**Enable CloudWatch Metrics:**
+
+Navigate to **Bucket → Metrics → Request metrics → Create filter**
+
+| Setting | Value |
+|---------|-------|
+| **Filter name** | `all-requests` |
+| **Filter scope** | All objects |
+| **Metrics** | Enable all request metrics |
+
+**Configure Storage Class Analysis:**
+1. Navigate to **Analytics → Storage Class Analysis**
+2. Create new configuration
+3. Name: `storage-optimization-analysis`
+4. Analysis scope: Entire bucket
+5. Export results: Yes (to separate analytics bucket)
+
+#### Step 8: S3 Access Logging Configuration
+
+Enable access logging for security and audit purposes.
+
+**First, create a logging bucket:**
+```
+Bucket name: [your-institution]-logs
+Block all public access: Yes
+Default encryption: Enable
+```
+
+**Then configure logging on main buckets:**
+1. Navigate to **Bucket → Properties → Server access logging → Edit**
+2. Enable server access logging: **Yes**
+3. Target bucket: Select your logs bucket
+4. Target prefix: `s3-access-logs/bucket-name/`
+
+### Best Practices and Security Considerations
+
+**Access Control:**
+- Never store AWS credentials in application code
+- Use IAM roles for EC2-to-S3 access
+- Regularly audit bucket policies and access logs
+- Enable MFA delete for production buckets
+
+**Cost Optimization:**
+- Use lifecycle policies to transition old data to cheaper storage classes
+- Enable S3 Intelligent-Tiering for unpredictable access patterns
+- Monitor storage metrics to identify unused data
+- Consider S3 Batch Operations for bulk actions
+
+**Performance:**
+- Use CloudFront CDN for frequently accessed public content
+- Implement multipart upload for files larger than 100MB
+- Use S3 Transfer Acceleration for global users
+- Organize objects with logical prefixes for better performance
 
 ---
+
+### 🏆 Achievement Unlocked: Object Storage Configured
+
+**Infrastructure Progress Update:**
+
+You've successfully configured the object storage layer that will house all your digital collections' media assets, documents, and backups. Your S3 buckets are now ready to securely store and serve content at any scale.
+
+**What You've Accomplished:**
+- ✅ **2 S3 buckets created** with appropriate separation between Dev/Test and Stage/Prod
+- ✅ **Security policies configured** to restrict access to authorized EC2 instances only
+- ✅ **Lifecycle rules established** for automatic cost optimization
+- ✅ **CORS configured** for web application integration
+- ✅ **Monitoring enabled** for usage tracking and security auditing
+
+**Your Storage Architecture Now Provides:**
+- **Unlimited scalability** - Store petabytes of data without capacity planning
+- **11 9's of durability** - Your data is replicated across multiple facilities
+- **Granular access control** - Only authorized services can access specific resources
+- **Cost optimization** - Automatic transitioning to cheaper storage classes over time
+- **Web-ready serving** - Direct HTTPS access for public media content
+
+**Integration Points Established:**
+Your S3 buckets are now ready to integrate with:
+- EC2 instances (via IAM roles we'll configure next)
+- CloudFront CDN (optional, for global content delivery)
+- Your application layer for media uploads and retrieval
+
+**Next Steps:**
+With compute (EC2), database (RDS), and storage (S3) layers complete, we'll move on to:
+- **IAM Configuration** - Set up the roles and policies that securely connect all services
+- **Route 53** - Configure DNS for user-friendly access
+- **SSL Certificates** - Enable secure HTTPS connections
+
+
+You're now 75% complete with your core infrastructure setup! The heavy lifting is done – what remains is primarily configuration and security refinement.
+
+---
+
 ## Change History
 
 | Version | Date | Author | Description |
@@ -842,10 +1178,13 @@ If you've successfully connected to your RDS instance from your EC2 instance, yo
 | 1.0 | Oct 17 2025 | Sai Kiran Boppana | Initial runbook creation |
 | 1.1 | Oct 17 2025 | Sai Kiran Boppana | Add EC2 Virtual Server Provisioning |
 | 1.2 | Oct 17 2025 | Sai Kiran Boppana | RDS Confirugration |
+| 1.3 | Oct 17 2025 | Sai Kiran Boppana | S3 Object Architecture |
 
 ---
 
-**Next Section:** 3. S3 (Object Storage) Configuration
+**Next Section:** 4. IAM (Identity and Access Management) Configuration
+
+
 
 
 
