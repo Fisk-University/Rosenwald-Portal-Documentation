@@ -422,7 +422,147 @@ Production requires a static IP address that persists even if the instance is st
 > - Each region has a default limit of 5 Elastic IPs (can be increased via support request)
 > - Document the Elastic IP address for DNS configuration
 
+# Securely Connecting to Private EC2 Instances via Bastion Host
+
+#### Overview
+
+In our AWS infrastructure, we use a Bastion host as a secure entry point to our private EC2 instances. To maintain security while allowing access, we use SSH agent forwarding. This method allows us to connect to private instances without storing sensitive key material on the Bastion host.
+
+#### Why Use SSH Agent Forwarding?
+
+1. **Security:** Private keys never leave your local machine, reducing the risk of key compromise
+2. **Convenience:** Authenticate once on your local machine to access multiple private instances
+3. **Best Practice:** Follows the principle of least privilege by not storing authentication material on intermediary servers
+
+#### How It Works
+
+SSH agent forwarding allows your local SSH agent to respond to public key authentication challenges from the private instance, through the Bastion host, without the Bastion ever seeing your private key.
+
+**Authentication Flow:**
+1. Your local SSH agent holds your private key
+2. When connecting, your SSH client asks the Bastion to forward authentication requests to your local machine
+3. The private instance requests authentication via the Bastion
+4. Your local SSH agent responds to the authentication challenge
+5. You gain access to the private instance without exposing your private key to the Bastion
+
+> **Note:** In our infrastructure, different instances may use different SSH keys for access. It's crucial to use the correct key for each instance to ensure successful and secure connections.
+
+#### Key Management
+
+| Key Type | File Name | Purpose |
+|----------|-----------|---------|
+| **Bastion Host Key** | `bastion-key.pem` | Used for initial connection to the Bastion host |
+| **Private Instance Key** | `omeka-environments-keypair.pem` | Used for connecting to private EC2 instances |
+
+#### Step-by-Step Connection Guide
+
+##### 1. Start the SSH Agent
+```bash
+eval $(ssh-agent)
+```
+This starts the SSH agent process, which will manage your keys.
+
+##### 2. Add Your Private Keys
+```bash
+ssh-add path/to/bastion-key.pem
+ssh-add path/to/omeka-environments-keypair.pem
+```
+This loads your private keys into the agent's memory.
+
+##### 3. Connect to Your Private Instance
+```bash
+ssh -A -J ec2-user@bastion-public-ip ubuntu@private-instance-ip
+```
+
+**Example for our environment:**
+```bash
+ssh -A -J ec2-user@ec2-54-84-76-231.compute-1.amazonaws.com ubuntu@10.0.4.103
+```
+
+**Command breakdown:**
+- `-A` enables agent forwarding
+- `-J` specifies the jump host (Bastion)
+- First user@host is the Bastion connection
+- Second user@host is the target private instance
+
+#### Alternative: Using SSH Config File
+
+For convenience, create or edit `~/.ssh/config`:
+```bash
+# Bastion Host
+Host bastion
+    HostName ec2-54-84-76-231.compute-1.amazonaws.com
+    User ec2-user
+    IdentityFile ~/path/to/bastion-key.pem
+    ForwardAgent yes
+
+# Development Instance
+Host dev
+    HostName 10.0.3.x
+    User ubuntu
+    IdentityFile ~/path/to/omeka-environments-keypair.pem
+    ProxyJump bastion
+
+# Testing Instance  
+Host test
+    HostName 10.0.4.x
+    User ubuntu
+    IdentityFile ~/path/to/omeka-environments-keypair.pem
+    ProxyJump bastion
+```
+
+Then connect simply with:
+```bash
+ssh dev
+# or
+ssh test
+```
+
+#### Security Considerations
+
+ **Important Security Practices:**
+- Always use agent forwarding with trusted Bastion hosts only
+- Regularly rotate SSH keys and limit their permissions
+- Monitor SSH access logs on both Bastion and private instances
+- Keep a secure record of which key is used for which instance or group
+- Use descriptive names for your key files to easily identify their purpose
+- Never store private keys on the Bastion host itself
+
+#### Troubleshooting Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| "Permission denied (publickey)" | Ensure correct key is added to SSH agent |
+| "Could not open a connection to your authentication agent" | Start SSH agent with `eval $(ssh-agent)` |
+| "Host key verification failed" | Add host to known_hosts or use `-o StrictHostKeyChecking=no` for first connection |
+| "Connection refused" | Verify security group allows SSH from Bastion |
+
+By following this method, we maintain a high level of security while providing necessary access to our private infrastructure.
+
+### 🎯 Checkpoint: EC2 Infrastructure Complete
+
+**What You've Accomplished:**
+You've successfully provisioned the compute layer of your infrastructure! Your four EC2 instances are now running across isolated environments, providing a secure foundation for your digital collections platform.
+
+**Current Architecture Status:**
+
+✅ **4 EC2 instances deployed** across Dev, Test, Stage, and Production environments  
+✅ **Network isolation configured** with private subnets for Dev/Test, public for Stage/Prod  
+✅ **Security groups established** with appropriate access controls for each environment  
+✅ **SSH key pairs secured** for administrative access through bastion host  
+✅ **Elastic IP assigned** to production for consistent public access  
+
+**What's Next:**
+Your compute instances are ready, but they need a database to connect to. In the next section, we'll provision managed RDS MySQL instances to store your application data securely and reliably.
+
+**Quick Validation:**
+Before proceeding, ensure you can:
+- [ ] SSH into at least one instance via your bastion host
+- [ ] See all four instances in "Running" state in EC2 dashboard
+- [ ] Have documented your Elastic IP for later DNS configuration
+
 ---
+
 
 ## 2. Managed Database Service (RDS MySQL) Configuration
 
@@ -680,5 +820,6 @@ Server version: 8.0.35 MySQL Community Server - GPL
 ---
 
 **Next Section:** 3. S3 (Object Storage) Configuration
+
 
 
