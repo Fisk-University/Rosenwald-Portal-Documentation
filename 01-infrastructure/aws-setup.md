@@ -424,14 +424,261 @@ Production requires a static IP address that persists even if the instance is st
 
 ---
 
+## 2. Managed Database Service (RDS MySQL) Configuration
+
+### Conceptual Overview
+
+A managed database service provides a fully administered database instance without the overhead of managing the underlying operating system, patching, backups, or high availability configurations. In this architecture, we use separate database instances for each environment to ensure complete data isolation and enable independent testing and development workflows.
+
+**Advantages of Managed Database Approach:**
+- Automated backups with point-in-time recovery
+- Automated software patching during maintenance windows
+- High availability with Multi-AZ deployments (for production)
+- Read replicas for scaling read operations
+- Automated failover in case of infrastructure issues
+
+### AWS Implementation: RDS MySQL Setup
+
+#### Step 1: Create DB Subnet Group
+
+Before creating the database, we need to define which subnets the database can use. This ensures proper network isolation.
+
+![Aurora and RDS Dashboard Launch](./images/rds-13-console-search.png)
+
+Navigate to **RDS Dashboard → Subnet groups → Create DB subnet group**
+
+![Subnet Groups from RDS Dashboard](./images/rds-14-create-subnet-group.png)
+
+**Configuration:**
+
+| Setting | Value |
+|---------|-------|
+| **Name** | `omeka-db-subnet-group` |
+| **Description** | Subnet group for database instances across all environments |
+| **VPC** | Select your VPC (e.g., `Omeka-Project-VPC`) |
+| **Add subnets** | Select at least 2 subnets in different availability zones |
+
+**Subnet Selection:**
+- **For Private Databases (Dev/Test):** Select your private subnets
+- **For Production:** Select private subnets (even production RDS should be in private subnets)
+
+![DB subnet group creation showing selected subnets](./images/rds-15-custom-subnet-group.png)
+
+#### Step 2: Create Parameter Group
+
+Parameter groups allow you to customize database engine configuration.
+
+Navigate to **RDS Dashboard → Parameter groups → Create parameter group**
+
+![Parameter Groups from RDS Dashboard](./images/rds-16-create-param-group.png)
+
+**Configuration:**
+
+| Setting | Value |
+|---------|-------|
+| **Parameter group family** | `mysql8.0` |
+| **Type** | DB Parameter Group |
+| **Group name** | `omeka-mysql80-params` |
+| **Description** | Custom MySQL 8.0 parameters for application |
+
+![Custom Parameter Groups Creation](./images/rds-17-custom-param-group.png)
+
+**After creation, edit the parameter group to optimize:**
+
+| Parameter | Value | Purpose |
+|-----------|-------|---------|
+| `character_set_server` | `utf8mb4` | Full Unicode support |
+| `collation_server` | `utf8mb4_unicode_ci` | Case-insensitive collation |
+| `max_allowed_packet` | `67108864` | 64MB for large media metadata |
+| `innodb_buffer_pool_size` | `{DBInstanceClassMemory*3/4}` | Memory optimization |
+| `slow_query_log` | `1` | Enable performance monitoring |
+| `long_query_time` | `2` | Log queries taking >2 seconds |
+
+#### Step 3: Create RDS Instance for Each Environment
+
+We'll create separate database instances. Here's the configuration for each environment:
+
+##### 3.1 Navigate to Create Database
+
+Navigate to **RDS Dashboard → Databases → Create database**
+
+![New Database creation from RDS Dashboard](./images/rds-18-create-new-db.png)
+
+##### 3.2 Engine Options
+
+| Setting | Value |
+|---------|-------|
+| **Engine type** | MySQL |
+| **Engine version** | MySQL 8.0.35 (or latest 8.0.x) |
+| **Templates** | Production (for prod) or Dev/Test (for other environments) |
+
+![RDS Engine Selection](./images/rds-19-engine-selection.png)
+
+##### 3.3 Instance Configuration
+
+| Environment | DB Instance Class | Specifications |
+|------------|------------------|----------------|
+| **Development** | `db.t3.micro` | 2 vCPU, 1 GiB RAM |
+| **Testing** | `db.t3.small` | 2 vCPU, 2 GiB RAM |
+| **Staging** | `db.t3.medium` | 2 vCPU, 4 GiB RAM |
+| **Production** | `db.m5.large` | 2 vCPU, 8 GiB RAM |
+
+**Production Only:**
+- Multi-AZ deployment: **Yes** (for high availability)
+
+![RDS Instance Configuration](./images/rds-20-instance-config.png)
+
+##### 3.4 Storage Configuration
+
+| Environment | Storage Type | Allocated Storage | Storage Autoscaling | Max Threshold |
+|------------|--------------|------------------|-------------------|---------------|
+| **Dev/Test** | GP3 SSD | 100 GiB | Enabled | 200 GiB |
+| **Staging** | GP3 SSD | 200 GiB | Enabled | 300 GiB |
+| **Production** | GP3 SSD | 300 GiB | Enabled | 500 GiB |
+
+![RDS Storage Configuration](./images/rds-21-storage.png)
+
+##### 3.5 Connectivity
+
+| Setting | Value |
+|---------|-------|
+| **Virtual private cloud** | Select your VPC |
+| **DB Subnet group** | `omeka-db-subnet-group` |
+| **Public access** | **No** (always keep databases private) |
+| **VPC security group** | Create new: `omeka-db-sg` |
+| **Availability Zone** | No preference |
+| **Database port** | 3306 |
+
+**Security Group Configuration:**
+- **Name:** `omeka-db-sg`
+- **Inbound rule:** MySQL/Aurora (3306) from EC2 security groups only
+
+![Connectivity settings showing VPC and security group](./images/rds-22-db-vpc.png)
+
+##### 3.6 Database Authentication
+
+- **Database authentication:** Password authentication
+- **Master username:** `omeka_admin`
+- **Master password:** Use strong password (store in AWS Secrets Manager)
+
+##### 3.7 Additional Configuration
+
+**Initial Database Names:**
+
+| Environment | Database Name |
+|------------|--------------|
+| **Development** | `omeka_dev` |
+| **Testing** | `omeka_test` |
+| **Staging** | `omeka_stage` |
+| **Production** | `omeka_prod` |
+
+**Additional Settings:**
+- **DB parameter group:** `omeka-mysql80-params`
+- **Option group:** `default:mysql-8-0`
+
+##### 3.8 Backup Configuration
+
+**Development/Testing:**
+| Setting | Value |
+|---------|-------|
+| **Enable automated backups** | Yes |
+| **Backup retention period** | 7 days |
+| **Backup window** | 03:00-04:00 UTC |
+
+**Production:**
+| Setting | Value |
+|---------|-------|
+| **Enable automated backups** | Yes |
+| **Backup retention period** | 30 days |
+| **Backup window** | Choose lowest traffic period |
+| **Copy tags to snapshots** | Yes |
+| **Enable deletion protection** | Yes |
+
+![Additional configuration showing database name and Backup](./images/rds-23-additional-config-dbname.png)
+
+##### 3.9 Maintenance
+
+| Setting | Value |
+|---------|-------|
+| **Enable auto minor version upgrade** | Yes (all environments) |
+| **Maintenance window** | Sunday 04:00-05:00 UTC |
+
+> **Note:** Choose maintenance window different from backup window
+
+##### 3.10 Review and Create
+
+Review all settings and click **"Create database"**
+
+#### Step 4: Configure Database Security Groups
+
+After creation, refine the security group rules:
+
+1. Go to **EC2 → Security Groups**
+2. Find the `omeka-db-sg` security group
+3. Edit inbound rules:
+
+**Inbound Rules Configuration:**
+
+| Type | Protocol | Port | Source | Description |
+|------|----------|------|--------|-------------|
+| MySQL/Aurora | TCP | 3306 | `omeka-dev-test-sg` | Allow MySQL from Dev/Test EC2 instances |
+| MySQL/Aurora | TCP | 3306 | `omeka-stage-prod-sg` | Allow MySQL from Stage/Prod EC2 instances |
+
+#### Step 5: Verify Database Connectivity
+
+After the database shows "Available" status (takes 5-10 minutes):
+
+1. Note the **Endpoint address** from RDS dashboard
+2. SSH into your EC2 instance through the bastion
+3. Test connection:
+```bash
+mysql -h [your-rds-endpoint].rds.amazonaws.com -u omeka_admin -p
+```
+
+**Expected output:**
+```
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 12
+Server version: 8.0.35 MySQL Community Server - GPL
+```
+
+### Best Practices and Considerations
+
+**Security:**
+- Always keep RDS instances in private subnets
+- Use strong, unique passwords for each environment
+- Enable encryption at rest for production databases
+- Regularly rotate database credentials
+
+**Performance:**
+- Monitor slow query logs regularly
+- Use Performance Insights for production databases
+- Consider read replicas for read-heavy workloads
+- Schedule maintenance windows during low-traffic periods
+
+**Cost Optimization:**
+- Use smaller instance types for Dev/Test environments
+- Consider Aurora Serverless for variable workloads
+- Enable storage autoscaling to avoid overprovisioning
+- Delete old manual snapshots regularly
+
+**Disaster Recovery:**
+- Test backup restoration procedures quarterly
+- Document RTO/RPO requirements
+- Consider cross-region backups for production
+- Maintain runbooks for failover procedures
+
+---
 ## Change History
 
 | Version | Date | Author | Description |
 |---------|------|--------|-------------|
 | 1.0 | Oct 17 2025 | Sai Kiran Boppana | Initial runbook creation |
 | 1.1 | Oct 17 2025 | Sai Kiran Boppana | Add EC2 Virtual Server Provisioning |
+| 1.2 | Oct 17 2025 | Sai Kiran Boppana | RDS Confirugration |
 
 ---
 
-**Next Section:** 2. RDS (Database) Configuration
+**Next Section:** 3. S3 (Object Storage) Configuration
+
 
