@@ -1171,6 +1171,336 @@ You're now 75% complete with your core infrastructure setup! The heavy lifting i
 
 ---
 
+## 4. IAM (Identity and Access Management) Configuration
+
+### Conceptual Overview
+
+Identity and Access Management controls who can access your cloud resources and what actions they can perform. The principle of **least privilege** is fundamental - each component should have only the minimum permissions necessary to function. In this architecture, we create specific roles for EC2 instances to access S3 buckets and other AWS services, eliminating the need to store access keys on servers.
+
+**Key IAM Components:**
+- **Roles:** Collections of permissions that EC2 instances can assume
+- **Policies:** JSON documents defining specific permissions
+- **Instance Profiles:** Containers for roles that can be attached to EC2 instances
+- **Service-to-service authentication:** Secure access without storing passwords
+
+### AWS Implementation: IAM Roles and Policies
+
+#### Step 1: Create IAM Policies for S3 Access
+
+Navigate to **IAM Console → Policies → Create policy**
+
+##### 1.1 Development Environment S3 Policy
+
+**Policy Name:** `omeka-dev-s3-access`
+
+Select JSON editor and input:
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "ListBucketContents",
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket",
+                "s3:GetBucketLocation",
+                "s3:GetBucketVersioning"
+            ],
+            "Resource": "arn:aws:s3:::your-institution-omeka-dev-test",
+            "Condition": {
+                "StringLike": {
+                    "s3:prefix": ["dev/*"]
+                }
+            }
+        },
+        {
+            "Sid": "ReadWriteDeleteDevObjects",
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:GetObjectVersion",
+                "s3:PutObject",
+                "s3:DeleteObject",
+                "s3:DeleteObjectVersion"
+            ],
+            "Resource": "arn:aws:s3:::your-institution-omeka-dev-test/dev/*"
+        },
+        {
+            "Sid": "MultipartUploadPermissions",
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListMultipartUploadParts",
+                "s3:AbortMultipartUpload"
+            ],
+            "Resource": "arn:aws:s3:::your-institution-omeka-dev-test/dev/*"
+        }
+    ]
+}
+```
+
+**Tags to add:**
+| Key | Value |
+|-----|-------|
+| Environment | Development |
+| Application | Omeka |
+
+##### 1.2 Production Environment S3 Policy
+
+**Policy Name:** `omeka-prod-s3-access`
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "ListBucketContents",
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket",
+                "s3:GetBucketLocation",
+                "s3:GetBucketVersioning"
+            ],
+            "Resource": "arn:aws:s3:::your-institution-omeka-prod-stage",
+            "Condition": {
+                "StringLike": {
+                    "s3:prefix": ["prod/*"]
+                }
+            }
+        },
+        {
+            "Sid": "ReadWriteDeleteProdObjects",
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:GetObjectVersion",
+                "s3:PutObject",
+                "s3:DeleteObject",
+                "s3:DeleteObjectVersion",
+                "s3:GetObjectAcl",
+                "s3:PutObjectAcl"
+            ],
+            "Resource": "arn:aws:s3:::your-institution-omeka-prod-stage/prod/*"
+        }
+    ]
+}
+```
+
+> **📝 Note:** Create similar policies for Testing (`omeka-test-s3-access`) and Staging (`omeka-stage-s3-access`) environments with appropriate resource paths.
+
+#### Step 2: Create CloudWatch Logs Policy
+
+**Policy Name:** `omeka-cloudwatch-logs`
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "CreateLogGroup",
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream"
+            ],
+            "Resource": "arn:aws:logs:us-east-1:YOUR_ACCOUNT_ID:log-group:/aws/ec2/omeka/*"
+        },
+        {
+            "Sid": "WriteLogEvents",
+            "Effect": "Allow",
+            "Action": [
+                "logs:PutLogEvents",
+                "logs:DescribeLogStreams"
+            ],
+            "Resource": "arn:aws:logs:us-east-1:YOUR_ACCOUNT_ID:log-group:/aws/ec2/omeka/*:*"
+        }
+    ]
+}
+```
+
+#### Step 3: Create IAM Roles for EC2 Instances
+
+Navigate to **IAM Console → Roles → Create role**
+
+##### 3.1 Development EC2 Role Configuration
+
+**Trust Entity Selection:**
+- Trusted entity type: AWS service
+- Use case: EC2
+
+**Attach Permissions Policies:**
+
+| Policy Name | Type | Purpose |
+|------------|------|---------|
+| `omeka-dev-s3-access` | Custom | S3 bucket access for dev environment |
+| `omeka-cloudwatch-logs` | Custom | CloudWatch logging capabilities |
+| `AmazonSSMManagedInstanceCore` | AWS Managed | Systems Manager access for maintenance |
+| `CloudWatchAgentServerPolicy` | AWS Managed | Metrics and monitoring |
+
+**Role Details:**
+- Role name: `omeka-ec2-dev-role`
+- Description: IAM role for development EC2 instances
+
+**Create Similar Roles For:**
+
+| Environment | Role Name |
+|------------|-----------|
+| Testing | `omeka-ec2-test-role` |
+| Staging | `omeka-ec2-stage-role` |
+| Production | `omeka-ec2-prod-role` |
+
+#### Step 4: Create IAM Role for RDS Enhanced Monitoring
+
+**Role Name:** `omeka-rds-enhanced-monitoring`
+
+**Configuration:**
+- Select trusted entity: AWS service → RDS → RDS Enhanced Monitoring
+- Attach policy: `AmazonRDSEnhancedMonitoringRole` (AWS managed)
+
+#### Step 5: Create IAM User for Backup Management (Optional)
+
+Navigate to **IAM → Users → Add users**
+
+**User Configuration:**
+- User name: `omeka-backup-manager`
+- Access type: Programmatic access only
+
+**Create Custom Backup Policy:**
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "S3BackupAccess",
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket",
+                "s3:GetObject",
+                "s3:PutObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::your-institution-omeka-*/backups/*"
+            ]
+        },
+        {
+            "Sid": "RDSSnapshotAccess",
+            "Effect": "Allow",
+            "Action": [
+                "rds:CreateDBSnapshot",
+                "rds:DescribeDBSnapshots",
+                "rds:CopyDBSnapshot"
+            ],
+            "Resource": [
+                "arn:aws:rds:*:YOUR_ACCOUNT_ID:db:omeka-*",
+                "arn:aws:rds:*:YOUR_ACCOUNT_ID:snapshot:*"
+            ]
+        }
+    ]
+}
+```
+
+#### Step 6: Configure IAM Password Policy
+
+Navigate to **IAM → Account settings → Password policy**
+
+**Recommended Password Requirements:**
+
+| Setting | Value |
+|---------|-------|
+| Minimum password length | 14 characters |
+| Require uppercase letter | Yes |
+| Require lowercase letter | Yes |
+| Require numbers | Yes |
+| Require non-alphanumeric | Yes |
+| Enable password expiration | 90 days |
+| Prevent password reuse | 5 passwords |
+
+#### Step 7: Attach IAM Roles to EC2 Instances
+
+For existing EC2 instances, attach the appropriate IAM role:
+
+1. Navigate to **EC2 Console → Instances**
+2. Select the instance
+3. Click **Actions → Security → Modify IAM role**
+4. Select the appropriate role (e.g., `omeka-ec2-dev-role` for development instance)
+5. Click **Update IAM role**
+
+### Security Best Practices
+
+**Access Management:**
+- Review IAM permissions quarterly
+- Remove unused roles and policies
+- Enable MFA for all IAM users
+- Use temporary credentials where possible
+
+**Policy Design:**
+- Always use the principle of least privilege
+- Avoid using wildcard (*) permissions in production
+- Use conditions to restrict access by IP, time, or other factors
+- Document the purpose of each custom policy
+
+**Monitoring:**
+- Enable CloudTrail for IAM activity logging
+- Set up alerts for unauthorized access attempts
+- Review access advisor reports regularly
+- Use AWS Access Analyzer to identify overly permissive policies
+
+---
+
+### 🔐 Security Layer Established: IAM Configuration Complete
+
+**Access Control Architecture Deployed**
+
+You've successfully implemented a comprehensive Identity and Access Management structure that ensures secure, granular access control across your infrastructure.
+
+**What You've Accomplished:**
+- ✅ **Custom IAM policies created** for environment-specific S3 access
+- ✅ **EC2 roles configured** enabling secure service-to-service communication
+- ✅ **CloudWatch logging permissions** established for monitoring
+- ✅ **RDS monitoring role** set up for database performance insights
+- ✅ **Password policy enforced** meeting security best practices
+
+**Security Benefits Achieved:**
+- **Zero stored credentials** - EC2 instances use roles, not access keys
+- **Principle of least privilege** - Each service has only required permissions
+- **Environment isolation** - Dev cannot access Prod resources
+- **Audit trail ready** - All actions are attributable and logged
+- **Automated access** - No manual key rotation needed
+
+**How Your Services Now Connect:**
+```
+EC2 Instance (with IAM Role)
+    ↓
+Assumes Role Automatically
+    ↓
+Gets Temporary Credentials
+    ↓
+Accesses S3 Buckets & CloudWatch
+```
+
+**Validation Checklist:**
+- [ ] Verify EC2 instances have IAM roles attached
+- [ ] Test S3 access from an EC2 instance
+- [ ] Confirm CloudWatch logs are being written
+- [ ] Review policies for any overly broad permissions
+
+**Infrastructure Status:**
+| Component | Status | Security Level |
+|-----------|--------|----------------|
+| Compute (EC2) | ✅ Complete | IAM roles attached |
+| Database (RDS) | ✅ Complete | Network isolated |
+| Storage (S3) | ✅ Complete | Policy protected |
+| Access Control (IAM) | ✅ Complete | Least privilege enforced |
+
+**Next Steps:**
+With IAM providing the security fabric connecting all services, we'll configure:
+- **Route 53** - DNS for user-friendly domain access
+- **SSL/TLS Certificates** - Secure HTTPS connections
+
+You've now completed the core security configuration that will protect your digital collections platform throughout its lifecycle. The infrastructure is not only functional but also follows AWS security best practices.
+
+**Current Setup Time:** ~3-4 hours invested
+**Security Posture:** Production-ready with defense in depth
+
+---
+
 ## Change History
 
 | Version | Date | Author | Description |
@@ -1179,10 +1509,12 @@ You're now 75% complete with your core infrastructure setup! The heavy lifting i
 | 1.1 | Oct 17 2025 | Sai Kiran Boppana | Add EC2 Virtual Server Provisioning |
 | 1.2 | Oct 17 2025 | Sai Kiran Boppana | RDS Confirugration |
 | 1.3 | Oct 17 2025 | Sai Kiran Boppana | S3 Object Architecture |
+| 1.4 | Oct 18 2025 | Sai Kiran Boppana | IAM Configuration |
 
 ---
 
-**Next Section:** 4. IAM (Identity and Access Management) Configuration
+**Next Section:** 5. Route 53 (DNS) Configuration 
+
 
 
 
