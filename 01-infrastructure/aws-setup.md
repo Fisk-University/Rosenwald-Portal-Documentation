@@ -1484,10 +1484,10 @@ Accesses S3 Buckets & CloudWatch
 **Infrastructure Status:**
 | Component | Status | Security Level |
 |-----------|--------|----------------|
-| Compute (EC2) | ✅ Complete | IAM roles attached |
-| Database (RDS) | ✅ Complete | Network isolated |
-| Storage (S3) | ✅ Complete | Policy protected |
-| Access Control (IAM) | ✅ Complete | Least privilege enforced |
+| Compute (EC2) | Complete | IAM roles attached |
+| Database (RDS) | Complete | Network isolated |
+| Storage (S3) | Complete | Policy protected |
+| Access Control (IAM) | Complete | Least privilege enforced |
 
 **Next Steps:**
 With IAM providing the security fabric connecting all services, we'll configure:
@@ -1513,7 +1513,8 @@ You've now completed the core security configuration that will protect your digi
 
 ---
 
-**Next Section:** 5. Route 53 (DNS) Configuration 
+**Next Section:** [5. Route 53 (DNS) Configuration →](./dns-nameservers-route53.md)
+
 
 
 
