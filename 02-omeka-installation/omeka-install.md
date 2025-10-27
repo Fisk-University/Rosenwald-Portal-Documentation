@@ -22,7 +22,7 @@ A complete web server running Omeka-S with:
 
 # PART 1: Creating Your Cloud Server on AWS
 
- ##### *For a visual walkthrough of launching and configuring an EC2 instance through the AWS console, including security groups, key pairs, and initial Ubuntu server connection, see [EC2 Setup →](./01-infrastructure/aws-setup.md)
+ ##### *For a visual walkthrough of launching and configuring an EC2 instance through the AWS console, including security groups, key pairs, and initial Ubuntu server connection, see [EC2 Setup →](../01-infrastructure/aws-setup.md)
 
 ## Understanding AWS and EC2
 
@@ -418,7 +418,7 @@ This allows Apache to write files while preventing unauthorized modifications.
 
 ### Step 3: Configure Database Connection
 
-For more detailed instructions on databases see [Database Instructions →](./database-ini.md.md)
+For more detailed instructions on databases see [Database Instructions →](./database-ini.md)
 
 Omeka needs to know how to connect to the MySQL database we created earlier.
 
@@ -959,3 +959,4 @@ Remember to document any issues you encounter and their solutions - this helps t
 ---
 
 *This document is part of the Rosenwald Fund Collection, supporting digital preservation at HBCUs and cultural institutions.*
+
