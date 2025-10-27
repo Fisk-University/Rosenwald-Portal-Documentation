@@ -954,9 +954,10 @@ Remember to document any issues you encounter and their solutions - this helps t
 
 | Version | Date | Author | Description |
 |---------|------|--------|-------------|
-| 1.0 | Oct 27 2025 | Sai Kiran Boppana | Initial comprehensive guide |
+| 1.0 | Oct 27 2025 |  LaTaevia Berry & Sai Kiran Boppana | Initial comprehensive guide |
 
 ---
 
 *This document is part of the Rosenwald Fund Collection, supporting digital preservation at HBCUs and cultural institutions.*
+
 
