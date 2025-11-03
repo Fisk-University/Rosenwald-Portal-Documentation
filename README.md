@@ -183,5 +183,5 @@ This documentation represents the **technical backbone of that blueprint**, ensu
 This documentation is published under the [Server Side Public License (SSPL-1.0)](https://www.mongodb.com/legal/licensing/server-side-public-license).
 
 
-*Last Updated: 2024-10-20*
+*Last Updated: 2025-11-03*
 *Authors: LaTaevia Berry, & Sai Kiran Boppana*
