@@ -1,97 +1,314 @@
-# CI/ CD Architecture for Rosenwald Fund Collection
-## Overview
-#### This document outlines the CI/CD architecture for deploying Omeka S modules and themes using GitHub Actions and AWS Systems Manager (SSM). The process follows a main-branch development strategy with manual tag-based deployment triggers to isolate release flows into Dev, Test, Stage, and Prod environments. This approach ensures secure, repeatable deployments with built-in backup, rollback, and validation mechanisms. All deployments happen inside a private subnet via a secure Bastion and SSM command execution pipeline. 
+# CICD-004: CI/CD Architecture and Setup Guide
 
-## Flow Chart
-![Flow Chart Image](file:///Users/kosisochukwuogbuanya/Desktop/Screenshot%202025-10-27%20at%201.51.02%E2%80%AFPM.png) 
+## Purpose
 
-## **Step 1: Developer Pushes Code to main** 
+This document explains the Fisk-Rosenwald CI/CD architecture and provides setup instructions for GitHub self-hosted runners and AWS Systems Manager (SSM). The architecture uses a tag-based deployment strategy that eliminates SSH dependencies, providing secure and auditable deployments through AWS SSM.
 
-Development activity begins when a contributor pushes their changes to the main branch of the module or theme repository. This branch acts as the canonical source of truth and is protected by GitHub branch policies that enforce pull requests and peer review. No deployment is triggered at this stage — the push is simply the first phase of code integration into the project’s central version of history. 
+## Applies To
+- Teams implementing GitHub Actions with AWS SSM
+- DevOps engineers setting up self-hosted runners
+- Developers needing access to EC2 instances via SSM
+- Institutions replicating the Rosenwald CI/CD framework
 
-## **Step 2: Merge Approved → Code Lands in main** 
+## Maintainer
+RWCF Engineers
 
-After review and approval, a pull request is merged into the main branch. This action finalizes the CI (Continuous Integration) portion of the pipeline but does not yet initiate deployment. By decoupling merger and deployment, the team maintains strict control over what gets released and when allowing time for tagging, testing, and review before actual deployment begins. 
+## Last Updated
+Nov 6 2025
 
-## **Step 3: Tag Created by Authorized User** 
+---
 
-To initiate deployment, a Git tag is created manually using the format vX.Y.Z-env (e.g., v1.0.2-dev). These tags serve as explicit version markers and indicate both the release version and target environment. Tagging is limited to authorized users only — especially for sensitive environments like prod to ensure accountability and prevent accidental overwrites. 
+## 1. CI/CD Architecture Overview
 
-## **Step 4: GitHub Actions Triggered on Tag Push** 
+### 1.1 Architecture Components
 
-Once the tag is pushed, GitHub Actions kicks off the deployment workflow (deploy.yml). This automated process is responsible for identifying the module or theme to be deployed, parsing the environment context from the tag, and launching the necessary build and upload steps. The use of tags ensures that deployments are intentional, auditable, and reproducible. 
+The Fisk-Rosenwald CI/CD architecture integrates GitHub Actions with AWS Systems Manager to provide secure, automated deployments without SSH access. The system uses Git tags to trigger deployments, with the environment determined by the tag suffix (e.g., v1.0.0-dev, v1.0.0-prod).
 
-## **Step 5: Environment Parsed from Tag Suffix** 
+**Key Components:**
+- **GitHub Repository**: Stores code with branch protection on main
+- **GitHub Actions**: Orchestrates the deployment workflow
+- **Self-Hosted GitHub Runner**: EC2 instance that executes GitHub Actions jobs
+- **AWS Systems Manager (SSM)**: Secure command execution on target EC2s
+- **S3 Buckets**: Storage for deployment artifacts and backups
+- **Target EC2 Instances**: Omeka-S application servers per environment
 
-The GitHub Action parses the tag suffix (e.g., -dev, -stage, -prod) to determine which infrastructure stack the deployment should target. This dynamic extraction drives the loading of environment-specific secrets, such as EC2 instance IDs, S3 bucket names, and IAM roles — all securely stored in GitHub Secrets and mapped accordingly within the CI/CD pipeline. 
+ ![Fisk-Rosenwald CI/CD Architecture](./Fisk-Rosenwald-CI_CD.drawio-2%20(1).png)
 
-## **Step 6: Deploy Job Runs on GitHub Runner EC2** 
+### 1.2 Deployment Flow Explanation
 
-A dedicated self-hosted GitHub Runner (an EC2 instance behind Bastion) performs the actual deployment. It packages the module or theme into a ZIP artifact (Module_TAG.zip), uploads it to S3, and then uses AWS SSM to instruct the appropriate Omeka EC2 instance to deploy it. This setup keeps internal EC2s private while enabling safe orchestration from GitHub. 
+The deployment process follows a strict sequence to ensure security and reliability:
 
-## **Step 7: AWS SSM Command Issued to EC2** 
+**Step 1: Code Integration**
+Developers push code to feature branches and create pull requests. After review and approval, code is merged into the main branch. No deployment occurs at this stage - the main branch serves as the source of truth for all deployments.
 
-Deployment on the Omeka server is initiated by executing an SSM send-command (RunShellScript document). This command tells the EC2 to download the ZIP file from S3 into /tmp, unzip it into /tmp/deployed-module/, make the deploy.sh script executable, and finally run it with environment and tag parameters. The use of SSM avoids any need for direct SSH access from the GitHub runner. 
+**Step 2: Tag-Based Deployment Trigger**
+Authorized users create Git tags following the format `v{version}-{environment}`. The tag serves two purposes: it marks a specific version for deployment and indicates the target environment through its suffix. Only users with appropriate permissions can create production tags.
 
-## **Step 8: Target EC2 Executes deploy.sh** 
+**Step 3: GitHub Actions Workflow**
+When a tag is pushed, GitHub Actions automatically triggers the deployment workflow. The workflow checks out the repository, creates a ZIP archive of the module or theme (named Module_TAG.zip), and uploads it to the appropriate S3 bucket based on the environment.
 
-On the Omeka EC2 instance, deploy.sh handles the core deployment logic. It first checks whether the deployment is for a theme or a module, then creates a timestamped backup of the current version. It removes any existing folder, unzips the new version into the correct location, runs composer install if required, and adjusts ownership/permissions. This ensures a clean and atomic deployment every time. 
+**Step 4: SSM Command Execution**
+The GitHub Runner sends an SSM command to the target EC2 instance. This command downloads the ZIP from S3, extracts it to /tmp/deployed-module/, makes the deploy.sh script executable, and runs it with environment and tag parameters.
 
-## **Step 9: Post-Deploy Validations Run** 
+**Step 5: Target Server Deployment**
+The EC2 instance receives the SSM command and executes the deployment script. This script backs up the current version, deploys the new code, sets appropriate permissions, and runs validation checks.
 
-Once deployment is complete, a series of validation checks are performed. These include verifying file existence, checking the HTTP response from the Omeka front-end, and scanning logs for runtime issues. These checks provide a final assurance that the deployment is completed successfully, and the site is operational. 
+**Step 6: Validation and Rollback**
+Post-deployment validation checks verify that the application is functioning correctly. If validation passes, logs and backups are uploaded to S3 and success is reported. If validation fails, the system automatically rolls back to the previous version and sends failure notifications.
 
-## **Step 10: Monitoring Execution via GitHub** 
+### 1.3 Security Controls
 
-Back on the GitHub runner, the workflow polls the status of the SSM command using get-command-invocation. It retrieves stdout and stderr output from the EC2, streams logs into the GitHub workflow logs, and captures the final execution status. This live feedback loop helps developers debug issues or confirm success without logging into any server directly. 
+The architecture implements multiple security layers:
 
-## **Step 11: Successful Deploy → Notify and Archive** 
+- **No SSH Keys**: All deployments use AWS IAM roles and SSM, eliminating SSH key management
+- **Private Subnets**: EC2 instances are not directly accessible from the internet
+- **IAM Role Separation**: GitHub Runner and target EC2s have minimal, separate permissions
+- **Audit Logging**: All SSM commands are logged in CloudTrail
+- **Encrypted Artifacts**: Deployment packages in S3 are encrypted at rest
 
-If all validations pass, uploads deployment logs and backup to the configured S3 bucket. These backups are versioned and timestamped to allow for historical auditing or manual recovery if needed. The deployment is marked as successful in the GitHub summary. 
+---
 
-## **Step 12: Failure → Rollback and Alert** 
+## 2. Setting Up GitHub Self-Hosted Runner
 
-If any post-deploy validation fails, the system automatically triggers a rollback using the timestamped backup. The prior version is restored, logs are written to both EC2 and S3, and a failure alert is issued with details about what went wrong. This ensures that broken deployments do not affect users, and developers are quickly notified of the failure state. 
+### 2.1 Overview
 
-## **Step 13: IAM Roles and Security Controls** 
+A self-hosted GitHub runner provides a dedicated environment for executing GitHub Actions workflows. Unlike GitHub-hosted runners, self-hosted runners remain in your AWS infrastructure, allowing access to private resources without exposing them to the internet.
 
-The architecture uses tightly scoped IAM roles: 
+### 2.2 Configuration Steps
 
-- The GitHub runner EC2 role allows ssm:SendCommand, s3:PutObject, and s3:GetObject 
+**Note**: The below setup has already been completed for Fisk-Rosenwald's Project
 
-- The Omeka EC2 role allows s3:GetObject for pulling artifacts 
-Access to both EC2s is restricted via Bastion. Private subnets, key-based SSH, and SSM execution help ensure that no direct public access exists. All SSM logs are preserved for auditing and debugging. 
+**Step 1: Navigate to Your GitHub Organization**
+Go to your organization's GitHub page where the repositories are hosted.
 
-## **One-Time Deployment Items** 
+**Step 2: Open the Runners Configuration Page**
+Click on Settings → Actions → Runners.
 
-These tasks are performed **once per EC2 environment** (Dev, Test, Stage, Prod) and are **explicitly excluded from GitHub Actions**. They are considered stable unless the environment is rebuilt or significantly changed. 
+**Step 3: Add a New Self-Hosted Runner**
+Click "New Runner" and then select "New self-hosted runner".
 
-**Manual Tasks Per Environment**: 
+**Step 4: Select the Runner Image and Architecture**
+- Operating System: Choose Linux (used in the Rosenwald Project)
+- Architecture: Select x64
 
-- Upload site logo and favicon via Omeka Admin UI 
+**Step 5: Start a Session to the GitHub Runner EC2 (Private Instance)**
+Open your terminal and run the following command to connect via AWS SSM:
+```bash
+aws ssm start-session --target i-xxxxxxxxxxxxxxxxx
+```
+Replace `i-xxxxxxxxxxxxxxxxx` with the instance ID of your GitHub Runner EC2.
 
-- Set site title and description in Omeka Admin UI 
+**Step 6: Run the Setup Commands from GitHub**
+Follow the commands displayed on the GitHub runner page (typically includes downloading the runner, configuring it with your token, and setting it up as a service).
 
-- Create Omeka admin user account (if not pre-provisioned) 
+**Step 7: Start the Runner**
+After setup, make the runner active with:
+```bash
+./svc.sh install
+./svc.sh start
+```
+Alternatively, use `./run.sh` if not installing as a service.
 
-- Click **Install** and **Activate** for required modules via Admin UI 
+### 2.3 Runner Maintenance
 
-- Select default public theme and basic navigation structure (if applicable) 
+The GitHub runner should be configured as a system service to ensure it starts automatically after reboots. Regular maintenance includes updating the runner software when new versions are released and monitoring the runner's health through GitHub's interface.
 
-- Verify that necessary PHP extensions are installed and configured 
+---
 
-- Ensure .htaccess overrides and Apache directives are active 
+## 3. Accessing AWS Systems Manager (SSM)
 
-- Set file system permissions for /files and other storage paths 
+### 3.1 Overview
 
-- Verify or create Omeka storage directory (storage.local.dir) if used 
+AWS Systems Manager (SSM) allows secure, direct access to EC2 instances through Session Manager, without requiring SSH or opening any inbound ports. This is ideal for environments like the Rosenwald Project where private EC2 instances should not be exposed to the public internet.
 
-**One-Time Patched Items**: 
+### 3.2 Who Needs SSM Access
 
-- .htaccess: Set SetEnv APPLICATION_ENV to match environment (development, production, etc.) --sudo nano /var/www/html/omeka-s/.htaccess 
+Each team member who needs access to EC2 instances via SSM must perform this setup on their local machine. SSM does not use shared SSH keys — it authenticates and authorizes each person based on their AWS IAM identity. If you're part of the deployment or debugging team, this is required for your role.
 
-- config.ini: Toggle logger setting per environment (On in Dev/Test, Off in Stage/Prod) 
+### 3.3 Prerequisites
 
-  --sudo nano /var/www/html/omeka-s/config/local.config.php 
+- Your local machine must have AWS CLI installed
+- You must have an IAM user or role with `ssm:StartSession` permissions
+- EC2 instance must have SSM Agent installed and running
+- EC2 instance IAM role must have `AmazonSSMManagedInstanceCore` policy attached
 
-These actions are deliberately **excluded from the CI/CD pipeline** to prevent override of manual configurations. All one-time setup activities should be logged in docs/env-init.md or included in handoff documentation for that environment. 
+### 3.4 Setup Instructions
+
+**Step 1: Install AWS CLI (If Not Already Installed)**
+
+Check if you have it installed:
+```bash
+aws --version
+```
+
+If not, follow instructions: https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html
+
+**Step 2: Configure AWS CLI**
+
+Run the following command and provide your credentials:
+```bash
+aws configure
+```
+
+You'll be prompted to enter:
+- AWS Access Key ID
+- AWS Secret Access Key
+- Default region (e.g., `us-east-1`)
+- Output format (e.g., `json`)
+
+To create a new AWS access key: IAM → Users → Open your user ID → Under summary create new access key
+
+**Step 3: Start a Session to the EC2 Instance**
+
+To connect to a specific instance:
+```bash
+aws ssm start-session --target i-xxxxxxxxxxxxxxxxx
+```
+
+Replace `i-xxxxxxxxxxxxxxxxx` with your EC2 instance ID. In our case, it's the GitHub EC2 private runner. This command opens an interactive shell on the EC2 through a secure, tunneled AWS connection.
+
+**Step 4: Verify SSM Access**
+
+To see which instances have been attached to AWS SSM, use:
+```bash
+aws ssm describe-instances
+```
+
+This will list all EC2 instances that are registered with Systems Manager and available for session connections.
+
+### 3.5 Security Notes
+
+Every SSM session is logged in CloudTrail, making this method more secure and auditable than SSH. It is safe to use in environments that require strict credential separation and logging. Session activity is recorded including:
+- Who initiated the session
+- When the session started and ended
+- Commands executed during the session
+- Session termination reason
+
+---
+
+## 4. IAM Roles and Permissions
+
+### 4.1 GitHub Runner EC2 Role
+
+The GitHub Runner requires permissions to upload artifacts to S3 and send commands via SSM:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject"
+      ],
+      "Resource": "arn:aws:s3:::rwcf-artifacts-*/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssm:SendCommand",
+        "ssm:GetCommandInvocation"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+### 4.2 Target EC2 Instance Role
+
+Target EC2 instances only need permissions to download artifacts from S3:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::rwcf-artifacts-*/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssm:UpdateInstanceInformation",
+        "ssmmessages:*",
+        "ec2messages:*"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+### 4.3 Developer IAM Permissions
+
+Developers need SSM session permissions to access EC2 instances:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssm:StartSession",
+        "ssm:TerminateSession",
+        "ssm:DescribeInstances"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+---
+
+## 5. Troubleshooting
+
+### 5.1 Common Issues
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| **SSM session fails to start** | SSM agent not running | Verify SSM agent status on EC2 |
+| **GitHub runner offline** | Service stopped | Restart runner service via SSM |
+| **Deployment hangs** | SSM command timeout | Check CloudWatch logs for errors |
+| **S3 access denied** | IAM permissions missing | Verify role has s3:GetObject permission |
+| **Validation fails repeatedly** | Application error | Check Omeka logs on target EC2 |
+
+### 5.2 Debugging Commands
+
+```bash
+# Check SSM agent status on EC2
+sudo systemctl status amazon-ssm-agent
+
+# View GitHub runner logs
+journalctl -u actions.runner.*.service -f
+
+# Check deployment logs
+tail -f /var/log/deployment.log
+
+# Verify S3 access
+aws s3 ls s3://rwcf-artifacts-dev/
+```
+
+---
+
+## Related Documents
+
+- `environments.md` - Environment-specific configurations
+- `deployment-checklist.md` - Pre and post-deployment validation
+- `backup-restore.md` - Backup procedures and recovery
+
+---
+
+## Change History
+
+| Version | Date | Author | Description |
+|---------|------|--------|-------------|
+| 1.0 | Nov 6 2025 | Sai Kiran Boppana | Initial CI/CD architecture documentation |
+
+---
+
+*This document is part of the Rosenwald Fund Collection documentation suite.*
