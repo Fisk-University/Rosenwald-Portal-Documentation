@@ -8,7 +8,7 @@ These materials include AWS infrastructure guidance, OmekaS installation and con
 
 This repository serves as the full technical blueprint—every step required to reproduce the Rosenwald digital portal architecture, from infrastructure provisioning to Omeka S module development.
 
-## 📆 About the Rosenwald Project
+## About the Rosenwald Project
 
 The Rosenwald Project is a Mellon Foundation-funded initiative that digitizes the history of **Julius Rosenwald**, a philanthropist who helped fund thousands of schools for African Americans in the early 20th century.
 
@@ -16,7 +16,7 @@ Fisk University’s digital portal not only houses these materials but also prov
 
 This documentation represents the **technical backbone of that blueprint**, ensuring that future institutions can extend, customize, and deploy the system with confidence.
 
-## 📚 Documentation Table of Contents
+## Documentation Table of Contents
 
 ### 00-templates/
 *Foundation templates and guidelines for all documentation*
@@ -90,7 +90,7 @@ This documentation represents the **technical backbone of that blueprint**, ensu
 | `security-practices.md` | Security baseline and IAM best practices |
 
 
-## 🤝 Contribution Guidelines
+## Contribution Guidelines
 
 ### Before Contributing
 1. Read the [Style Guide](00-templates/style-guide.md) for documentation standards
@@ -129,7 +129,7 @@ This documentation represents the **technical backbone of that blueprint**, ensu
 - [ ] Proper file naming conventions
 
 
-## 🚀 Quick Start
+## Quick Start
 
 ### For New Team Members
 | Step | Action | Document |
@@ -152,7 +152,7 @@ This documentation represents the **technical backbone of that blueprint**, ensu
 | Pre-deployment checks | `05-cicd/deployment-checklist.md` |
 | Issue resolution | `06-troubleshooting/` folder |
 
-## 📋 Documentation Status
+## Documentation Status
 
 | Category | Status | Items |
 |----------|--------|-------|
@@ -161,7 +161,7 @@ This documentation represents the **technical backbone of that blueprint**, ensu
 | **Planned** | 📅 | Complete Troubleshooting Guides, Replication Blueprint Details, Video Walkthroughs |
 
 
-## 🔗 Related Resources
+## Related Resources
 
 | Resource | Link |
 |----------|------|
@@ -169,7 +169,7 @@ This documentation represents the **technical backbone of that blueprint**, ensu
 | AWS Documentation | [AWS Documentation](https://docs.aws.amazon.com/) |
 
 
-## 📞 Support
+## Support
 
 | Issue Type | Contact Method |
 |------------|----------------|
@@ -178,7 +178,7 @@ This documentation represents the **technical backbone of that blueprint**, ensu
 | Security Concerns | Email security team directly (do not post publicly) |
 
 
-## 📄 License
+## License
 
 This documentation is published under the [Server Side Public License (SSPL-1.0)](https://www.mongodb.com/legal/licensing/server-side-public-license).
 
