@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This guide documents the four-tier environment strategy (Dev → Test → Stage → Prod) for the Rosenwald project, including the promotion workflows, environment-specific configurations, and the critical database clone strategy. The multi-environment approach ensures code quality through progressive validation while protecting production stability. Each environment serves a specific purpose in the development lifecycle, with strict controls on data movement and deployment permissions.
+This guide documents the three-tier environment strategy (Dev → Stage → Prod) for the Rosenwald project, including the promotion workflows, environment-specific configurations, and the critical database clone strategy. The multi-environment approach ensures code quality through progressive validation while protecting production stability. Each environment serves a specific purpose in the development lifecycle, with strict controls on data movement and deployment permissions.
 
 ## Applies To
 - All Omeka-S deployments following the RWCF framework
@@ -14,22 +14,21 @@ This guide documents the four-tier environment strategy (Dev → Test → Stage 
 RWCF Engineers
 
 ## Last Updated
-Nov 6 2025
+Feb 2 2025
 
 ---
 
 ## 1. Environment Overview
 
-### 1.1 Four-Tier Architecture
+### 1.1 Three-Tier Architecture
 
-The Rosenwald project uses four distinct environments, each with its own EC2 instance, RDS database, and S3 bucket. This separation ensures that development experiments never affect production, while providing multiple validation stages before public release. The environments are completely isolated at the network level, residing in different subnets with separate security groups.
+The Rosenwald project uses three distinct environments, each with its own EC2 instance, RDS database, and S3 bucket. This separation ensures that development experiments never affect production, while providing multiple validation stages before public release. The environments are completely isolated at the network level, residing in different subnets with separate security groups.
 
 **Environment Purposes:**
 
 | Environment | Purpose | Users | Data Type |
 |-------------|---------|-------|-----------|
 | **Dev** | Active development and experimentation | Developers only | Synthetic test data |
-| **Test** | Automated testing and QA validation | QA team + Developers | Test datasets |
 | **Stage** | Production mirror for final validation | Stakeholders + Team | Production-like data |
 | **Prod** | Live public site | End users | Real archival data |
 
@@ -60,7 +59,6 @@ v{major}.{minor}.{patch}-{environment}
 
 Examples:
 v1.0.0-dev     # Deploy version 1.0.0 to Dev
-v1.0.0-test    # Promote same version to Test
 v1.0.0-stage   # Promote to Stage after testing
 v1.0.0-prod    # Final production deployment
 ```
@@ -73,24 +71,18 @@ Code must progress through environments sequentially. Skipping environments is p
 
 **Required Promotion Path:**
 ```
-main branch → Dev → Test → Stage → Prod
-     ↓         ↓      ↓       ↓       ↓
-   (merge)  (v1-dev)(v1-test)(v1-stage)(v1-prod)
+main branch → Dev → Stage → Prod
+     ↓         ↓      ↓       ↓       
+   (merge)  (v1-dev)(v1-stage)(v1-prod)
 ```
 
 **Promotion Requirements:**
 
-**Dev → Test:**
+**Dev → Stage:**
 - All unit tests passing
 - Code review completed
 - No critical security vulnerabilities
 - Module/theme loads without errors
-
-**Test → Stage:**
-- All automated tests passing
-- QA team sign-off
-- Performance benchmarks met
-- No regression issues identified
 
 **Stage → Prod:**
 - Stakeholder approval obtained
@@ -133,8 +125,7 @@ Database cloning is intentionally restricted to prevent data contamination and m
 **Allowed Clone Operations:**
 ```
 Stage → Prod: ✅ ALLOWED (via manual script)
-Dev → Test: ❌ BLOCKED
-Test → Stage: ❌ BLOCKED  
+Dev → Stage: ❌ BLOCKED 
 Prod → Stage: ❌ BLOCKED
 Any other combination: ❌ BLOCKED
 ```
@@ -271,14 +262,14 @@ Certain configurations are set once per environment and explicitly excluded from
 
 **Per-Environment Manual Tasks:**
 
-| Task | Dev | Test | Stage | Prod |
-|------|-----|------|-------|------|
-| **Application Environment** | development | testing | staging | production |
-| **Debug Mode** | Enabled | Enabled | Disabled | Disabled |
-| **Error Display** | On | On | Off | Off |
-| **Cache** | Off | Off | On | On |
-| **SSL Required** | No | No | Yes | Yes |
-| **Backup Frequency** | Never | Daily | Daily | Hourly |
+| Task | Dev | Stage | Prod |
+|------|-----|-------|------|
+| **Application Environment** | development | staging | production |
+| **Debug Mode** | Enabled | Disabled | Disabled |
+| **Error Display** | On | Off | Off |
+| **Cache** | Off | On | On |
+| **SSL Required** | No | Yes | Yes |
+| **Backup Frequency** | Never | Daily | Hourly |
 
 ### 5.2 Environment Variables
 
@@ -338,7 +329,6 @@ Each environment operates in isolated network segments with no cross-communicati
 ```
 VPC: 10.0.0.0/xx
 ├── Dev Subnet: 10.0.1.0/24
-├── Test Subnet: 10.0.2.0/24  
 ├── Stage Subnet: 10.0.3.0/24
 ├── Prod Subnet: 10.0.4.0/24
 └── Bastion Subnet: 10.0.99.0/24
@@ -348,13 +338,13 @@ VPC: 10.0.0.0/xx
 
 Access to each environment is role-based with increasing restrictions as you move toward production.
 
-| Role | Dev | Test | Stage | Prod |
-|------|-----|------|-------|------|
-| **Developers** | Full | Full | Read | None |
-| **QA Team** | Read | Full | Full | None |
-| **DevOps** | Full | Full | Full | Limited |
-| **Stakeholders** | None | None | Read | None |
-| **Production Support** | None | None | Read | Full |
+| Role | Dev | Stage | Prod |
+|------|-----|-------|------|
+| **Developers** | Full | Read | None |
+| **QA Team** | Full | Full | None |
+| **DevOps** | Full | Full | Limited |
+| **Stakeholders** | None | Read | None |
+| **Production Support** | None | Read | Full |
 
 ---
 
@@ -371,7 +361,9 @@ Access to each environment is role-based with increasing restrictions as you mov
 | Version | Date | Author | Description |
 |---------|------|--------|-------------|
 | 1.0 | Nov 6 2025 | Sai Kiran Boppana | Initial environment documentation |
+| 1.1 | Feb 2 2026 | Sai Kiran Boppana | Reflect Docs Post Test Decomission|
 
 ---
 
 *This document is part of the Rosenwald Fund Collections documentation suite.*
+
