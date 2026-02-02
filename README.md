@@ -68,7 +68,7 @@ This documentation represents the **technical backbone of that blueprint**, ensu
 
 | Document | Description |
 |----------|-------------|
-| `environments.md` | Multi-environment (dev/test/stage/prod) overview |
+| `environments.md` | Multi-environment (dev/stage/prod) overview |
 | `backup-restore.md` | Automated S3 backups and restore procedures |
 | `deployment-checklist.md` | Pre-launch deployment and verification checklist |
 
