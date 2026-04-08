@@ -1,5 +1,13 @@
 # customVocabularySample
 
+## Before You Begin
+
+No coding experience is required for this process. If you are comfortable editing metadata fields in Omeka S, you can successfully create and manage a custom vocabulary.
+
+---
+
+This guide walks through each step slowly and clearly so that institutions can define their own terms in a structured and reusable way.
+
 This folder contains sample custom vocabularies for use with [Omeka-S](https://omeka.org/s/), designed to help archivists and librarians enhance metadata precision and consistency in their digital collections.
 
 **Watch the step-by-step tutorial:**  
@@ -12,6 +20,31 @@ Archivists often need vocabularies tailored to specific institutions, communitie
 By using these examples as a guide, archivists can create their own turtle(.ttl) vocabularies to support custom metadata fields, controlled term lists, or local cataloging practices.
 
 ---
+
+## Understanding Namespaces
+
+A namespace is a unique identifier that ensures your institution’s vocabulary does not conflict with others.
+
+Think of a namespace as your institution’s signature attached to every term you create.
+
+For example:
+
+- Fisk University might use: https://rosenwald.fisk.edu/vocab/
+- Tuskegee University might use: https://rosenwald.tuskegee.edu/vocab/
+- Prairie View A&M might use: https://rosenwald.pvamu.edu/vocab/
+
+Each term you define will begin with your namespace. This ensures that even if another institution uses a similar term name, the full identifier remains unique.
+
+### Example Term
+
+```bash
+https://rosenwald.fisk.edu/vocab/schoolName
+```
+
+This structure allows vocabularies to be shared, reused, and understood across institutions without overlap or ambiguity.
+
+---
+
 ## Step 1: Define Your Namespace and URI
 
 ### Each vocabulary must begin with a unique namespace URI. Here's how to create one: 
@@ -75,6 +108,18 @@ your:CreatedBy a rdf:Property ;
 
 We recommend validating any modified files before importing them into your Omeka-S instance.
 
+---
+
+##Common Mistakes
+
+The following issues are the most common causes of import errors or long-term data inconsistencies:
+- Using an incorrect or incomplete namespace URL
+- Changing the namespace after terms have already been created
+- Inconsistent capitalization in term names
+- Reusing the same prefix for different namespaces
+- Introducing spaces or unsupported characters in term identifiers
+
+Once a vocabulary is in use, identifiers should be treated as permanent. Changes after deployment can break mappings and require manual data correction.
 
 ---
 
@@ -94,9 +139,30 @@ We recommend validating any modified files before importing them into your Omeka
 
 ---
 
+## What a Successful Import Looks Like
 
+After uploading your Turtle file into Omeka S:
 
+1. Navigate to Admin → Vocabularies
+2. Confirm that your new vocabulary appears in the list
+3. Select the vocabulary to view its terms
+4. Verify that:
+    - All expected properties are present
+    - Labels are readable and correctly formatted
+    - No duplicate or malformed entries exist
 
+You should now be able to assign these fields when creating or editing items.
+
+To confirm full functionality:
+
+- Create a test item
+- Apply several of your new fields
+- Save and reload the item
+- Confirm that all values persist correctly
+
+If all steps complete successfully, your vocabulary is ready for production use.
+
+---
 ## Notes & Best Practices 
 
 * Custom HTML URI: Even though using an RDF document would be more semantically linked-data-compliant, using an HTML approach is fine for internal vocabularies. The key is that the URI resolves. 
