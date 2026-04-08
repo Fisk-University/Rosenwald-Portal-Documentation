@@ -6,9 +6,7 @@ It is designed for **engineers, developers, and technical consultants** supporti
 
 These materials include AWS infrastructure guidance, OmekaS installation and configuration procedures, CI/CD workflows, and custom module and theme documentation used in the Fisk University Rosenwald Portal implementation.
 
-This repository serves as the full technical blueprint—every step required to reproduce the Rosenwald digital portal architecture, from infrastructure provisioning to Omeka S module development.
-
-Institutions may implement this system at different levels of complexity depending on staffing, funding, and long-term sustainability goals, but in ALL cases an engineer will be required.
+Institutions may implement this system at different levels of complexity depending on staffing, funding, and long-term sustainability goals, but in **all cases an engineer will be required**.
 
 ## About the Rosenwald Project
 
