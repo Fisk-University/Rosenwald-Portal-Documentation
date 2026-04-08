@@ -1,7 +1,7 @@
 # CLOUD INFRASTRUCTURE RUNBOOK FOR DIGITAL COLLECTIONS
 
 **Document ID:** aws-setup.md  
-**Version:** 1.1   
+**Version:** 1.5   
 **Maintainer:** Sai Kiran Boppana & LaTaevia Berry   
 **Last Updated:** Apr 7 2026  
 
@@ -1522,6 +1522,7 @@ You've now completed the core security configuration that will protect your digi
 | 1.2 | Oct 17 2025 | Sai Kiran Boppana | RDS Confirugration |
 | 1.3 | Oct 17 2025 | Sai Kiran Boppana | S3 Object Architecture |
 | 1.4 | Oct 18 2025 | Sai Kiran Boppana | IAM Configuration |
+| 1.5 | Apr 08 2025 | LaTaevia Berry | Non Technical Clarification |
 
 ---
 
