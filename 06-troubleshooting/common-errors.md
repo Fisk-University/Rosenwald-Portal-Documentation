@@ -1,6 +1,6 @@
 # Common Errors
 
-This document outlines frequently encountered issues within the Rosenwald Omeka S deployment and their corresponding resolutions. These errors are based on observed behavior across development, staging, and production environments.
+This document outlines frequently encountered issues during development and deploymen, and their corresponding resolutions. 
 
 ---
 
@@ -15,6 +15,7 @@ Apache is serving the default document root instead of the Omeka S application d
 - Confirm Omeka is installed at `/var/www/html/omeka-s`
 - Update Apache configuration:
 
+* * * * *
 
 ### 2. error-router-no-match
 
@@ -25,6 +26,8 @@ Incorrect base URL or broken rewrite rules.
 
 -   Verify `.htaccess` exists in the Omeka root directory
 -   Ensure mod_rewrite is enabled:
+
+* * * * *
 
 ### 3. Infinite Redirect Loop
 
@@ -43,7 +46,7 @@ Misconfigured rewrite rules or duplicated base paths.
 Database Issues
 ---------------
 
-### 4\. Cannot Connect to Database (RDS)
+### 4. Cannot Connect to Database (RDS)
 
 **Cause**
 
@@ -59,7 +62,7 @@ Database Issues
 
 * * * * *
 
-### 5\. High Database Cost or Performance Degradation
+### 5. High Database Cost or Performance Degradation
 
 **Cause**
 
@@ -78,7 +81,7 @@ Database Issues
 File Handling Issues
 --------------------
 
-### 6\. Image Thumbnails Not Generating
+### 6. Image Thumbnails Not Generating
 
 **Cause**\
 ImageMagick security policy blocks PDF or image processing.
@@ -90,22 +93,22 @@ sudo nano /etc/ImageMagick-6/policy.xml
 
 Locate and modify:
 
-<policy domain="coder" rights="none" pattern="PDF" />
+`<policy domain="coder" rights="none" pattern="PDF" />`
 
 Change to:
 
-<policy domain="coder" rights="read|write" pattern="PDF" />
+`<policy domain="coder" rights="read|write" pattern="PDF" />`
 
 Restart Apache after changes.
 
 * * * * *
 
-### 7\. File Upload Fails Silently
+### 7. File Upload Fails Silently
 
-**Cause**\
+**Cause**
 PHP upload limits too low.
 
-**Resolution**\
+**Resolution**
 Update `php.ini`:
 
 upload_max_filesize = 128M\
@@ -119,43 +122,43 @@ Restart Apache.
 Infrastructure Issues
 ---------------------
 
-### 8\. EC2 Disk Full
+### 8. EC2 Disk Full
 
-**Cause**\
+**Cause**
 Default root volume too small for ingestion workload.
 
 **Resolution**
 
--   Increase EBS volume size via AWS console
+-   Increase EBS volume size
 -   Extend filesystem:
 
-sudo growpart /dev/xvda 1\
-sudo resize2fs /dev/xvda1
+`sudo growpart /dev/xvda 1\`
+`sudo resize2fs /dev/xvda1`
 
 * * * * *
 
-### 9\. SSL Certificate Not Applied
+### 9. SSL Certificate Not Applied
 
-**Cause**\
+**Cause**
 Certbot did not properly bind certificate to Apache config.
 
-**Resolution**\
+**Resolution**
 Verify:
 
-/etc/apache2/sites-available/000-default-le-ssl.conf
+`/etc/apache2/sites-available/000-default-le-ssl.conf`
 
 Run:
 
-sudo certbot --apache
+`sudo certbot --apache`
 
 * * * * *
 
 Observability Issues
 --------------------
 
-### 10\. No Traffic Data Available
+### 10. No Traffic Data Available
 
-**Cause**\
+**Cause**
 Analytics not configured or ALB access logs disabled.
 
 **Resolution**
