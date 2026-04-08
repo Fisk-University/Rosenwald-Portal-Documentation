@@ -15,7 +15,7 @@ This infrastructure supports a digital collections platform built on Omeka-S. At
 
 When a user visits the public site, their request travels through a secure web server hosted on Amazon EC2. The Omeka S application retrieves metadata from a database and, when needed, retrieves associated files from cloud storage. The infrastructure ensures that this process is secure, backed up, and scalable as collections grow.
 
-Institutions may implement this system at different levels of complexity depending on staffing, funding, and long-term sustainability goals, but in ALL cases an engineer will be required.
+Institutions may implement this system at different levels of complexity depending on staffing, funding, and long-term sustainability goals, but in **all cases an engineer will be required**.
 
 
 ## Document Overview
